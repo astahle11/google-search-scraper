@@ -1,33 +1,33 @@
 from googlesearch import search
 from rich.console import Console
-import csv
 import requests
 from requests_ip_rotator import ApiGateway, EXTRA_REGIONS, ALL_REGIONS
+from dotenv import load_dotenv
+import os
 
-def gatewayinit(gateway):
+def start_gatewayinit():
     
-    gatewayurl = "https://apitest.com/path/parts"
-    targeturl = "https://google.com"
+    gatewayiniturl = "https://08e7900et4.execute-api.us-east-2.amazonaws.com"
     
-    gateway = ApiGateway(gatewayurl)
-    gateway.start()
+    gatewayinit = ApiGateway(gatewayiniturl)
+    gatewayinit.start()
 
     # Assign gateway to session
     session = requests.Session()
-    session.mount(gatewayurl, gateway)
+    session.mount(gatewayiniturl, gateway)
     
     # Send request (IP will be randomised)
-    response = session.get(gatewayurl, params={"theme": "light"})
+    response = session.get(gatewayiniturl, params={"theme": "light"})
     
-    print(response.status_code)
+    console.print(response.status_code)
     
-    return gateway
+    return gatewayinit
     
-def gatewayshutdown():
+def start_gatewayshutdown(gatewayinit):
     
-    gateway = gatewayinit()
+    gatewayshutdown = start_gatewayinit(gatewayinit)
     # Delete gateways
-    gateway.shutdown()
+    gatewayshutdown.shutdown()
 
 class EndProgramException(Exception):
     pass
@@ -37,30 +37,43 @@ def display_message(console, message):
     console.print(message)
 
 if __name__ == '__main__':
+    
+    load_dotenv() 
+    
+    ID = os.getenv("ID")
+    KEY = os.getenv("KEY")
+ 
     console = Console()
-    query = 'Cats'  # Hardcoded query for this example; replace with input if needed
-    num_results = 3
+    
+    gateway = ApiGateway("https://www.google.com", regions="us-east-2", access_key_id=ID,access_key_secret=KEY)
+    gateway.start()
+    session1 = requests.Session()
+    
+    file_path = "results.csv" 
     data = []
+    
+    start_gatewayinit()
 
     try:
-        search_results = list(search(query, num_results, safe=True, advanced=True))
-
-        file_path = "results.csv" 
+        session1.mount("https://www.google.com", gateway)
+        session1.get("https://www.google.com/search?q=test")
         
-        
-        for result in search_results:
+        for result in session1:
+            
             href = result  # Assuming result is a URL string
             text = "N/A"  # Placeholder, as googlesearch typically returns just URLs
             title = result
             description = result
             
-            with open(file_path, 'w', newline='') as csv_file:
-                writer = csv.writer(csv_file)
+            with open(file_path, 'w', newline='') as text_file:
                 data.append({'link': href,'\n' 'text': text,'\n' 'title': title,'\n' 'description': description})
-                for row in data:
-                    writer.writerow(data)
                 
     except EndProgramException:
         console.print("Ending program.")
+        start_gatewayshutdown()
+        
     except Exception as e:
         console.print(f"An error occurred: {e}")
+        start_gatewayshutdown()
+        
+    start_gatewayshutdown()
