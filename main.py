@@ -1,27 +1,29 @@
 from googlesearch import search
 from rich.console import Console
 import requests
-from requests_ip_rotator import ApiGateway, EXTRA_REGIONS, ALL_REGIONS
-from dotenv import load_dotenv
-import os
+from requests_ip_rotator import ApiGateway
+from requests.adapters import HTTPAdapter
+import boto3
 
 def start_gatewayinit():
     
-    gatewayiniturl = "https://08e7900et4.execute-api.us-east-2.amazonaws.com"
+    gatewayiniturl = "https://qqrqi9ye9c.execute-api.us-east-2.amazonaws.com/dev"
     
     gatewayinit = ApiGateway(gatewayiniturl)
     gatewayinit.start()
 
     # Assign gateway to session
     session = requests.Session()
-    session.mount(gatewayiniturl, gateway)
+    
+    # Mount the HTTPAdpater object to the session
+    session.mount('https://', adapter)
     
     # Send request (IP will be randomised)
-    response = session.get(gatewayiniturl, params={"theme": "light"})
-    
+    console.print(f'Sending test request to {gatewayiniturl}...')
+    response = session.get('https://google.com')
     console.print(response.status_code)
     
-    return gatewayinit
+    return gatewayinit, session
     
 def start_gatewayshutdown(gatewayinit):
     
@@ -38,27 +40,30 @@ def display_message(console, message):
 
 if __name__ == '__main__':
     
-    load_dotenv() 
-    
-    ID = os.getenv("ID")
-    KEY = os.getenv("KEY")
- 
-    console = Console()
-    
-    gateway = ApiGateway("https://www.google.com", regions="us-east-2", access_key_id=ID,access_key_secret=KEY)
-    gateway.start()
-    session1 = requests.Session()
-    
-    file_path = "results.csv" 
+    file_path = "results.txt" 
     data = []
     
-    start_gatewayinit()
+    console = Console()
+    
+    #Authentication via aws-shell config file
+    session = boto3.Session(profile_name='default')
+    session.resource('s3')
+    
+    # Create an HTTPAdapter object and configure connection pooling and retries
+    adapter = HTTPAdapter(pool_connections=20, pool_maxsize=5, max_retries=3)
+    
+    session = start_gatewayinit()
 
     try:
-        session1.mount("https://www.google.com", gateway)
-        session1.get("https://www.google.com/search?q=test")
+        session = requests.Session()
+        session.mount('https://', adapter)
+        response = session.get("https://www.google.com/search?q=test")
+
+        console.print(response.text)
         
-        for result in session1:
+        write_response = response.text
+        
+        for result in response:
             
             href = result  # Assuming result is a URL string
             text = "N/A"  # Placeholder, as googlesearch typically returns just URLs
@@ -70,10 +75,7 @@ if __name__ == '__main__':
                 
     except EndProgramException:
         console.print("Ending program.")
-        start_gatewayshutdown()
         
     except Exception as e:
         console.print(f"An error occurred: {e}")
-        start_gatewayshutdown()
-        
-    start_gatewayshutdown()
+    
