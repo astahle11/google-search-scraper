@@ -37,7 +37,7 @@ def extract_href(href):
     query = parse_qs(url.query)
     if not ('q' in query and query['q'] and len(query['q']) > 0):
         return None
-    return href, query['q'][0]
+    return href,query['q'][0]
 
 def start_gatewayinit():
     
@@ -77,32 +77,38 @@ if __name__ == '__main__':
     
     # AWS STUFF
     # Authentication via aws-shell config file
+    console.print("Configuring API")
     session = boto3.Session(profile_name='default')
     session.resource('s3')
     
     # Create an HTTPAdapter object and configure connection pooling and retries
     adapter = HTTPAdapter(pool_connections=20, pool_maxsize=5, max_retries=3)
     
-    # Test out the gateway. 200 means the target was reached.
     session = start_gatewayinit()
     # AWS STUFF DONE
+    console.print("Success")
+    
     
     try:
-        results = []
         
         #query = input("Search: ")
         query = 'cats'
         file_path = "results.html" 
+        console.print("Sending request")
         response = session.get("https://www.google.com/search?q=" + query)
         
         print("RESPONSE ", response.status_code)
         
         soup = BeautifulSoup(response.text, 'html.parser')
 
+        console.print("Extracting results")
         res = extract_results(soup)
        
         with open('results.json', "w") as outfile:
             json.dump(res, outfile)
+        
+        console.print(res)
+        console.print("\n( ͡° ͜ʖ ͡°)👍 Your did it")
         
         
     except EndProgramException:
