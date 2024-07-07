@@ -43,7 +43,7 @@ def extract_href(href):
     return href, query["q"][0]
 
 
-def start_gatewayinit(adapter):
+def start_gatewayinit():
 
     # Assign gateway to session
     session = requests.Session()
@@ -53,14 +53,7 @@ def start_gatewayinit(adapter):
     # Mount the HTTPAdpater object to the session
     session.mount("https://", adapter)
 
-    return session, adapter
-
-
-def start_gatewayshutdown(gatewayinit):
-    gatewayshutdown = start_gatewayinit(gatewayinit)
-    # Delete gateways
-    gatewayshutdown.shutdown()
-
+    return session
 
 class EndProgramException(Exception):
     pass
@@ -83,7 +76,7 @@ def main():
         datefmt="[%X]",
         handlers=[RichHandler(rich_tracebacks=True)],
     )
-
+    
     console.print("Configuring API")  # Authentication via aws-shell config file
     session = boto3.Session(profile_name="default")
     session.resource("s3")
@@ -98,10 +91,11 @@ def main():
         pages_scraped = 0
         # query = input("Search: ")
         query = "cats"
-        json_file_path = "results.html"
-        notepad_plus_plus_path = os.path.join(
-            "npp.8.6.7.portable.minimalist.x64\\notepad++.exe"
-            )
+        json_file_path = "results.json"
+        
+        # Get the directory of the current script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        notepad_plus_plus_path = os.path.join(script_dir, "npp.8.6.7.portable.minimalist.x64\\notepad++.exe")
         
         console.print("Sending request")
         response = session.get("https://www.google.com/search?q=" + query)
@@ -114,29 +108,19 @@ def main():
             console.print("Extracting results")
             res = extract_results(soup)
 
-            with open("results.json", "w") as outfile:
-                json.dump(res, outfile)
-                console.print()
-                print("results.json written successfuly")
-
+            with open("results.json", "r") as outfile:
+                try:
+                    data = json.load(res)
+                    pretty_json = json.dumps(data, indent=4)
+                    json.dump(pretty_json, outfile)
+                    console.print("results.json written successfuly")
+                except json.JSONDecodeError as e:
+                    console.print(f"Error decoding JSON: {e}")
+                    
             console.print(res)
             console.print("\n( ͡° ͜ʖ ͡°)👍 Your did it")
-
-            # Check if the file exists
-            if not os.path.exists(json_file_path):
-                print(f"The file {json_file_path} does not exist.")
-
-            else:
-                # Open the JSON file with Notepad++ Portable
-                try:
-                    subprocess.run([notepad_plus_plus_path, json_file_path])
-                    print(f"Opened {json_file_path} with Notepad++ Portable.")
-                except Exception as e:
-                    print(
-                        f"Failed to open {json_file_path} with Notepad++ Portable. Error: {e}"
-                    )
-
-            input("\n\n Press any key to quit.")
+            
+            input("Press any key to continue")
 
     except EndProgramException:
         console.print_exception("Ending program.")
