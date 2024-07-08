@@ -14,23 +14,42 @@ from rich.console import Console
 from rich.traceback import install
 from rich.logging import RichHandler
 
-def advance_page(console, soup, pages_scraped):
+def advance_page(console, soup):
     console.print("Attempting to advance page...")
         
     parent_div = soup.find('body', jsmodel="hspDDf")
         
     if parent_div:
-        child_div = parent_div.find('div', class_='child')
+        child_div = parent_div.find('div', class_='main')
         if child_div:
-            nested_div = child_div.find('div', class_='nested')
+            nested_div = child_div.find('div', class_='GyAeWb')
             if nested_div:
-                nested_a = nested_div.find('a')
-                if nested_a:
-                    print("Found nested <a> tag:")
-                    print("Text:", nested_a.text)
-                    print("URL:", nested_a['href'])
+                nested_div_a = nested_div.find('div', class_='s6JM6d')
+                if nested_div_a:
+                    nested_div_b = nested_div_a.find('div', id_='botstuff')
+                    if nested_div_b:
+                        nested_div_c = nested_div_b.find('div', role_='navigation')
+                        if nested_div_c:
+                            table = nested_div_c.find('table', class_="AaVjTc")
+                            if table:
+                                tbody = table.find('tbody')
+                                if tbody:
+                                    tr = tbody.find('tr', jsname_="TeSSVd")
+                                    if tr:
+                                        td = tr.find('td', class_='d6cvqb BBwThe')
+                                        
+                                    else:
+                                        print("No <td> tag found inside nested <tr>.")
+                                else:
+                                    print("No <tr> tag found inside nested <tbody>.")
+                            else:
+                                print("No <tbody> tag found inside nested <table>.")
+                        else:
+                            print("No <table> tag found inside nested <div>.")     
+                    else:
+                        print("No <div> tag found inside nested <div>.")                   
                 else:
-                    print("No <a> tag found inside nested <div>.")
+                    print("No <div> tag found inside nested <div>.")
             else:
                 print("No 'nested' <div> found.")
         else:
@@ -38,7 +57,7 @@ def advance_page(console, soup, pages_scraped):
     else:
         print("No 'parent' <div> found.")
         
-    next_link = soup.find('div', style="display:block")
+    next_link = td.find('div', style="display:block")
     next_url = next_link['href']
     requests.get(next_url)
     
