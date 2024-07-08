@@ -9,8 +9,6 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import json
-import subprocess
-import os
 
 
 def extract_results(soup):
@@ -91,11 +89,6 @@ def main():
         pages_scraped = 0
         # query = input("Search: ")
         query = "cats"
-        json_file_path = "results.json"
-        
-        # Get the directory of the current script
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        notepad_plus_plus_path = os.path.join(script_dir, "npp.8.6.7.portable.minimalist.x64\\notepad++.exe")
         
         console.print("Sending request")
         response = session.get("https://www.google.com/search?q=" + query)
@@ -117,10 +110,10 @@ def main():
                 except json.JSONDecodeError as e:
                     console.print(f"Error decoding JSON: {e}")
                     
-            console.print(res)
-            console.print("\n( ͡° ͜ʖ ͡°)👍 Your did it")
+        console.print(res)
+        console.print("\n( ͡° ͜ʖ ͡°)👍 Your did it")
             
-            input("Press any key to continue")
+        input("Press any key to continue")
 
     except EndProgramException:
         console.print_exception("Ending program.")
