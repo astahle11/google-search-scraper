@@ -1,15 +1,49 @@
+import logging
+import json
+
+import requests
+from requests.adapters import HTTPAdapter
+
+import boto3
+
+from bs4 import BeautifulSoup
+
+from urllib.parse import urlparse, parse_qs
+
 from rich.console import Console
 from rich.traceback import install
 from rich.logging import RichHandler
-import logging
-import requests
-from requests.adapters import HTTPAdapter
-import boto3
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
-from urllib.parse import parse_qs
-import json
 
+def advance_page(console, soup, pages_scraped):
+    console.print("Attempting to advance page...")
+        
+    parent_div = soup.find('body', jsmodel="hspDDf")
+        
+    if parent_div:
+        child_div = parent_div.find('div', class_='child')
+        if child_div:
+            nested_div = child_div.find('div', class_='nested')
+            if nested_div:
+                nested_a = nested_div.find('a')
+                if nested_a:
+                    print("Found nested <a> tag:")
+                    print("Text:", nested_a.text)
+                    print("URL:", nested_a['href'])
+                else:
+                    print("No <a> tag found inside nested <div>.")
+            else:
+                print("No 'nested' <div> found.")
+        else:
+            print("No 'child' <div> found.")
+    else:
+        print("No 'parent' <div> found.")
+        
+    next_link = soup.find('div', style="display:block")
+    next_url = next_link['href']
+    requests.get(next_url)
+    
+    return
+    
 
 def extract_results(soup):
     main = soup.select_one("#main")
@@ -42,16 +76,16 @@ def extract_href(href):
 
 
 def start_gatewayinit():
-
     # Assign gateway to session
     session = requests.Session()
 
     adapter = HTTPAdapter(pool_connections=20, pool_maxsize=5, max_retries=3)
-    
+
     # Mount the HTTPAdpater object to the session
     session.mount("https://", adapter)
 
     return session
+
 
 class EndProgramException(Exception):
     pass
@@ -63,7 +97,8 @@ def display_message(console, message):
 
 
 def main():
-    
+    print("Initializing...")
+
     console = Console()
 
     install()  # Make rich.console the default traceback handler
@@ -74,45 +109,56 @@ def main():
         datefmt="[%X]",
         handlers=[RichHandler(rich_tracebacks=True)],
     )
-    
+
     console.print("Configuring API")  # Authentication via aws-shell config file
     session = boto3.Session(profile_name="default")
     session.resource("s3")
-    
+
     session = start_gatewayinit()
     # AWS STUFF DONE
     console.print("Success")
 
     try:
         max_pages = 5
-        page_number = 1
         pages_scraped = 0
         # query = input("Search: ")
         query = "cats"
-        
         console.print("Sending request")
         response = session.get("https://www.google.com/search?q=" + query)
 
         print("RESPONSE", response.status_code)
 
         while pages_scraped < max_pages:
-            soup = BeautifulSoup(response.text, "html.parser")
+            soup = BeautifulSoup(response.text, "lxml")
 
             console.print("Extracting results")
             res = extract_results(soup)
+            console.print("Results extracted")
+            
+            try:
+                advance_page(console, soup)
+                pages_scraped + 1
+                console.print("Page advanced")
+                
+            except Exception as e:
+                console.print(f"An error occurred: {e}")
+            
+        try:
+            # Serialize Python object (res) to JSON string
+            pretty_json = json.dumps(res, indent=4)
+            
+            # Write JSON stirng to file
+            with open("results.json", "w") as outfile:
+                json.dump(pretty_json, outfile)
+                
+                console.print("results.json written successfuly")
+                
+        except json.JSONDecodeError as e:
+            console.print(f"Error decoding JSON: {e}")
 
-            with open("results.json", "r") as outfile:
-                try:
-                    data = json.load(res)
-                    pretty_json = json.dumps(data, indent=4)
-                    json.dump(pretty_json, outfile)
-                    console.print("results.json written successfuly")
-                except json.JSONDecodeError as e:
-                    console.print(f"Error decoding JSON: {e}")
-                    
         console.print(res)
         console.print("\n( ͡° ͜ʖ ͡°)👍 Your did it")
-            
+
         input("Press any key to continue")
 
     except EndProgramException:

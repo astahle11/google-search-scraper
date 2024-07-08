@@ -5,6 +5,7 @@ certifi==2024.6.2
 charset-normalizer==3.3.2
 idna==3.7
 jmespath==1.0.1
+lxml==5.2.2
 markdown-it-py==3.0.0
 mdurl==0.1.2
 pip-system-certs==4.0
