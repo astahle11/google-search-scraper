@@ -41,7 +41,7 @@ def extract_href(href):
 
 def start_gatewayinit():
     
-    gatewayiniturl = "https://qqrqi9ye9c.execute-api.us-east-2.amazonaws.com/dev"
+    gatewayiniturl = ""  # Enter an AWS gateway here
     
     # Assign gateway to session
     session = requests.Session()
